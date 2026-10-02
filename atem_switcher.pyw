@@ -3,7 +3,8 @@
 ATEM Auto-Switcher
 Monitors Dante Virtual Soundcard audio levels and switches ATEM Television Studio 4K
 automatically based on which microphone is loudest.
-Each row picks its own audio device (DVS stereo pair) and channel (0=left, 1=right).
+Each row picks its own audio device and channel within that device (e.g. DVS exposed
+as a single multi-channel device on macOS, or as separate stereo pairs on Windows).
 """
 
 import sys
@@ -1465,6 +1466,19 @@ class MainWindow(QMainWindow):
             if not restored:
                 self._auto_select_dvs(dev_combo)
             dev_combo.blockSignals(False)
+            self._update_ch_range(dev_combo, ch_spin)
+
+    def _update_ch_range(self, dev_combo: QComboBox, ch_spin: QSpinBox):
+        """Size the channel spinbox to the selected device's actual input channel count."""
+        dev_idx = dev_combo.currentData()
+        max_ch = 2
+        if dev_idx is not None:
+            try:
+                max_ch = max(1, int(sd.query_devices(dev_idx)['max_input_channels']))
+            except Exception:
+                pass
+        ch_spin.setRange(0, max_ch - 1)
+        ch_spin.setToolTip(f"Channel within device (0 – {max_ch - 1})")
 
     def _auto_select_dvs(self, combo: QComboBox):
         for j in range(combo.count()):
@@ -1515,13 +1529,16 @@ class MainWindow(QMainWindow):
             self._auto_select_dvs(dev_combo)
         self._rows_grid.addWidget(dev_combo, grid_row, 2)
 
-        # Col 3 — channel (L/R)
+        # Col 3 — channel within device (not just L/R — some DVS setups expose
+        # all Dante channels as one multi-channel device, e.g. "DVS (8ch)" on macOS)
         ch_spin = QSpinBox()
-        ch_spin.setRange(0, 1)
-        ch_spin.setValue(ch)
         ch_spin.setFixedWidth(38)
-        ch_spin.setToolTip("0 = left  1 = right")
+        self._update_ch_range(dev_combo, ch_spin)
+        ch_spin.setValue(ch)
         self._rows_grid.addWidget(ch_spin, grid_row, 3)
+        dev_combo.currentIndexChanged.connect(
+            lambda _, dc=dev_combo, cs=ch_spin: self._update_ch_range(dc, cs)
+        )
 
         # Col 4 — gate threshold
         gate_spin = QDoubleSpinBox()
