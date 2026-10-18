@@ -44,8 +44,27 @@ class _Tee:
             f.flush()
 
 import os as _os
-_APP_DIR = _os.path.join(_os.path.expanduser('~'), 'Desktop', 'atem-switcher')
-_os.makedirs(_APP_DIR, exist_ok=True)
+
+def _find_app_dir() -> str:
+    """Settings + log folder: Desktop/atem-switcher, or a fallback when the Desktop
+    can't be written (macOS asks before an app may use the Desktop folder; if that
+    is refused the app must still start)."""
+    desktop = _os.path.join(_os.path.expanduser('~'), 'Desktop', 'atem-switcher')
+    try:
+        _os.makedirs(desktop, exist_ok=True)
+        probe = _os.path.join(desktop, '.write-test')
+        open(probe, 'w').close()
+        _os.remove(probe)
+        return desktop
+    except OSError:
+        if sys.platform == 'darwin':
+            fallback = _os.path.join(_os.path.expanduser('~'), 'Library', 'Application Support', 'HBS ATEM Auto Switcher')
+        else:
+            fallback = _os.path.join(_os.path.expanduser('~'), '.atem-switcher')
+        _os.makedirs(fallback, exist_ok=True)
+        return fallback
+
+_APP_DIR = _find_app_dir()
 _SETTINGS_FILE = _os.path.join(_APP_DIR, 'atem_settings.json')
 _LOG_PATH = _os.path.join(_APP_DIR, 'atem_log.txt')
 # Keep the previous session's log (e.g. after a crash) as atem_log.prev.txt
@@ -370,7 +389,7 @@ class ATEMConnection:
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-APP_VERSION = "1.27"   # bump on every release (matches the GitHub commit count)
+APP_VERSION = "1.28"   # bump on every release (matches the GitHub commit count)
 
 AUDIO_SAMPLERATE    = 48000
 AUDIO_BLOCKSIZE     = 1024
@@ -956,9 +975,9 @@ class MainWindow(QMainWindow):
         self._rows_grid.setColumnMinimumWidth(1, 90)
         self._rows_grid.setColumnMinimumWidth(3, 38)
         self._rows_grid.setColumnMinimumWidth(4, 72)
-        self._rows_grid.setColumnMinimumWidth(5, 52)
-        self._rows_grid.setColumnMinimumWidth(6, 52)
-        self._rows_grid.setColumnMinimumWidth(8, 68)
+        self._rows_grid.setColumnMinimumWidth(5, 62)
+        self._rows_grid.setColumnMinimumWidth(6, 62)
+        self._rows_grid.setColumnMinimumWidth(8, 80)
         self._rows_grid.setColumnMinimumWidth(9, 180)
         self._rows_grid.setColumnMinimumWidth(10, 38)
 
@@ -1160,7 +1179,12 @@ class MainWindow(QMainWindow):
 
         cfg_outer.addWidget(companion_box)
         cfg_outer.addStretch()
-        bottom_tabs.addTab(cfg_tab, "Settings")
+        # Scrollable, so the descriptions never get squeezed on smaller screens (e.g. a MacBook)
+        cfg_scroll = QScrollArea()
+        cfg_scroll.setWidgetResizable(True)
+        cfg_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        cfg_scroll.setWidget(cfg_tab)
+        bottom_tabs.addTab(cfg_scroll, "Settings")
 
         # ── Miscellaneous tab ─────────────────────────────────────────────────
         misc_tab = QWidget()
@@ -1258,7 +1282,7 @@ class MainWindow(QMainWindow):
         self._log_view.setStyleSheet("""
             QPlainTextEdit {
                 background: #111; color: #b0b0b0;
-                border: none; font-family: monospace; font-size: 11px;
+                border: none; font-family: Menlo, Consolas, monospace; font-size: 11px;
             }
         """)
         log_layout.addWidget(self._log_view)
@@ -1557,7 +1581,7 @@ class MainWindow(QMainWindow):
         attack_spin.setValue(attack)
         attack_spin.setSingleStep(0.01)
         attack_spin.setDecimals(2)
-        attack_spin.setFixedWidth(52)
+        attack_spin.setFixedWidth(62)
         attack_spin.setToolTip("Signal must stay above gate threshold for this long before switching")
         self._rows_grid.addWidget(attack_spin, grid_row, 5)
 
@@ -1567,7 +1591,7 @@ class MainWindow(QMainWindow):
         release_spin.setValue(release)
         release_spin.setSingleStep(0.1)
         release_spin.setDecimals(1)
-        release_spin.setFixedWidth(52)
+        release_spin.setFixedWidth(62)
         release_spin.setToolTip("Gate stays open this long after signal drops below threshold")
         self._rows_grid.addWidget(release_spin, grid_row, 6)
 
@@ -1584,7 +1608,7 @@ class MainWindow(QMainWindow):
 
         # Col 8 — priority weight
         prio_combo = QComboBox()
-        prio_combo.setFixedWidth(68)
+        prio_combo.setFixedWidth(80)
         prio_combo.setToolTip(
             "Priority when several mics are open at the same time.\n"
             "High: this camera wins unless another mic is much louder (2× boost).\n"

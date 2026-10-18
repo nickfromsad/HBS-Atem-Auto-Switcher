@@ -1,4 +1,7 @@
-name: Build Windows EXE
+name: Build release
+
+# Builds the Windows exe and the macOS app and publishes both as release v<APP_VERSION>.
+# Start it from Actions → Build release → Run workflow (after bumping APP_VERSION).
 
 on:
   workflow_dispatch:
@@ -7,10 +10,12 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  windows:
     runs-on: windows-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/setup-python@v5
         with:
@@ -22,12 +27,12 @@ jobs:
       - name: Extract embedded icon
         shell: bash
         run: |
-          python - <<'EOF'
+          python - <<'PY'
           import re, base64
           src = open("atem_switcher.pyw", encoding="utf-8").read()
           b64 = re.search(r'_ICON_B64 = "([^"]*)"', src).group(1)
           open("icon.ico", "wb").write(base64.b64decode(b64))
-          EOF
+          PY
 
       - name: Build exe
         run: pyinstaller --onefile --windowed --icon icon.ico --name "HBS-ATEM-Auto-Switcher" atem_switcher.pyw
@@ -37,16 +42,41 @@ jobs:
         shell: bash
         run: |
           VERSION=$(python -c "import re; print(re.search(r'APP_VERSION = \"([^\"]+)\"', open('atem_switcher.pyw', encoding='utf-8').read()).group(1))")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publish release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="v${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
           EXE="dist/HBS-ATEM-Auto-Switcher.exe"
           gh release create "$TAG" "$EXE" --title "$TAG" \
-            --notes "HBS ATEM Auto Switcher $TAG (Windows, standalone exe)" \
+            --notes "HBS ATEM Auto Switcher $TAG. Windows: HBS-ATEM-Auto-Switcher.exe. macOS (Apple Silicon): HBS-ATEM-Auto-Switcher-*.dmg." \
             --repo "$GITHUB_REPOSITORY" \
           || gh release upload "$TAG" "$EXE" --clobber --repo "$GITHUB_REPOSITORY"
+
+  macos:
+    # After the Windows job, so the release already exists.
+    needs: windows
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # uv runs dmgbuild for the styled .dmg window
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: pip install pyinstaller PyQt6 numpy sounddevice
+
+      - name: Build app and dmg
+        run: packaging/macos/build-mac.sh
+
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.windows.outputs.tag }}" dist/HBS-ATEM-Auto-Switcher-*.dmg --clobber --repo "$GITHUB_REPOSITORY"

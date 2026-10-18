@@ -51,18 +51,26 @@ de gate de release-tijd voordat hij sluit, zodat er bij een natuurlijke pauze ni
 
 ## Downloaden
 
-Download `HBS-ATEM-Auto-Switcher.exe` bij de [nieuwste release](https://github.com/nickfromsad/HBS-Atem-Auto-Switcher/releases/latest)
-en dubbelklik erop. Python installeren is niet nodig.
+Download de [nieuwste release](https://github.com/nickfromsad/HBS-Atem-Auto-Switcher/releases/latest). Python installeren is niet nodig.
 
-**De eerste keer openen.** De exe is niet digitaal ondertekend, dus Windows SmartScreen kan *Windows heeft uw pc
-beveiligd* laten zien. Klik op **Meer informatie → Toch uitvoeren**.
+**Windows**: download `HBS-ATEM-Auto-Switcher.exe` en dubbelklik erop. De exe is niet digitaal ondertekend, dus
+Windows SmartScreen kan *Windows heeft uw pc beveiligd* laten zien. Klik op **Meer informatie → Toch uitvoeren**.
+
+**macOS** (Apple Silicon, macOS 12 of nieuwer): download `HBS-ATEM-Auto-Switcher-x.y.dmg`, open hem en sleep de app
+naar de map Programma's. De app is niet door Apple gecontroleerd, dus macOS blokkeert hem de eerste keer: ga naar
+**Systeeminstellingen → Privacy en beveiliging**, scrol omlaag en klik op **Open toch**. Sta daarna toe:
+
+- **Microfoon**: nodig om de audioniveaus te lezen, ook van Dante Virtual Soundcard. Zonder die toestemming krijgt
+  de app alleen stilte en wordt er niets gewisseld. Later aanpassen kan via *Systeeminstellingen → Privacy en
+  beveiliging → Microfoon*.
+- **Lokaal netwerk**: nodig om de ATEM te bereiken (en voor Companion).
 
 Verder heb je nodig:
 
 - **Dante Virtual Soundcard**, of een andere audio-ingang met meerdere kanalen
 - een **Blackmagic ATEM** op hetzelfde netwerk als de computer
 
-Op macOS of Linux start je hem vanuit de broncode (zie [Ontwikkelen](#ontwikkelen)).
+Op Linux start je hem vanuit de broncode (zie [Ontwikkelen](#ontwikkelen)).
 
 ---
 
@@ -79,7 +87,8 @@ Op macOS of Linux start je hem vanuit de broncode (zie [Ontwikkelen](#ontwikkele
 
 De instellingen worden bij afsluiten bewaard en bij de volgende start teruggezet. Ze staan in
 `Bureaublad/atem-switcher/`, samen met `atem_log.txt` (het log van de vorige sessie blijft bewaard als
-`atem_log.prev.txt`, handig na een crash).
+`atem_log.prev.txt`, handig na een crash). Mag de app niet op het bureaublad schrijven (macOS vraagt dat), dan
+gebruikt hij `~/Library/Application Support/HBS ATEM Auto Switcher` (`~/.atem-switcher` op Windows/Linux).
 
 ### Hoe de gate werkt
 
@@ -155,15 +164,23 @@ python atem_switcher.pyw
 | Bestand | |
 |---|---|
 | `atem_switcher.pyw` | de hele app: ATEM-verbinding (UDP), audio-engine, Companion-server en de PyQt6-interface |
-| `.github/workflows/build-exe.yml` | bouwt de Windows-exe met PyInstaller en zet hem als release online |
+| `.github/workflows/build-release.yml` | bouwt de Windows-exe en de Mac-app met PyInstaller en zet ze samen als release online |
+| `packaging/macos/` | Mac-build: `build-mac.sh` (app + dmg), het app-icoon en de opmaak van het dmg-venster |
 | `docs/icon.png` | het icoon in deze README (het app-icoon zelf zit in het script) |
 
 ### Een nieuwe versie uitbrengen
 
 1. Verhoog `APP_VERSION` in `atem_switcher.pyw`.
-2. Push, en open dan op GitHub **Actions → Build Windows EXE → Run workflow**.
+2. Push, en open dan op GitHub **Actions → Build release → Run workflow**.
 
-De workflow bouwt `HBS-ATEM-Auto-Switcher.exe` met het ingebouwde icoon en zet hem online als release `v<APP_VERSION>`.
+De workflow bouwt `HBS-ATEM-Auto-Switcher.exe` en `HBS-ATEM-Auto-Switcher-<versie>.dmg`, allebei met het icoon uit
+het script, en zet ze online als release `v<APP_VERSION>`.
+
+De Mac-app lokaal bouwen (nodig: [uv](https://docs.astral.sh/uv/) en de Xcode Command Line Tools):
+
+```bash
+uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy packaging/macos/build-mac.sh
+```
 
 ---
 

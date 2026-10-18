@@ -50,18 +50,25 @@ the release time before closing, preventing jumpy cuts during natural pauses.
 
 ## Download
 
-Download `HBS-ATEM-Auto-Switcher.exe` from the [latest release](https://github.com/nickfromsad/HBS-Atem-Auto-Switcher/releases/latest)
-and double-click it. No Python install needed.
+Get the [latest release](https://github.com/nickfromsad/HBS-Atem-Auto-Switcher/releases/latest). No Python install needed.
 
-**First launch.** The exe is not code-signed, so Windows SmartScreen may show *Windows protected your PC*. Click
-**More info → Run anyway**.
+**Windows**: download `HBS-ATEM-Auto-Switcher.exe` and double-click it. The exe is not code-signed, so Windows
+SmartScreen may show *Windows protected your PC*. Click **More info → Run anyway**.
+
+**macOS** (Apple Silicon, macOS 12 or newer): download `HBS-ATEM-Auto-Switcher-x.y.dmg`, open it and drag the app to
+Applications. The app is not notarized by Apple, so the first launch is blocked: open **System Settings → Privacy &
+Security**, scroll down and click **Open Anyway**. Then allow:
+
+- **Microphone**: needed to read the audio levels, also for Dante Virtual Soundcard. Without it macOS feeds the app
+  silence and nothing switches. Changed your mind? *System Settings → Privacy & Security → Microphone*.
+- **Local Network**: needed to reach the ATEM (and for Companion).
 
 You also need:
 
 - **Dante Virtual Soundcard**, or any multi-channel audio input
 - a **Blackmagic ATEM** switcher on the same network as the computer
 
-On macOS or Linux, run it from source (see [Development](#development)).
+On Linux, run it from source (see [Development](#development)).
 
 ---
 
@@ -77,7 +84,9 @@ On macOS or Linux, run it from source (see [Development](#development)).
 7. Press **AUTOMATION ON** to enable automatic switching.
 
 Settings are saved on close and restored on the next launch. They live in `Desktop/atem-switcher/`, together with
-`atem_log.txt` (the previous session's log is kept as `atem_log.prev.txt`, handy after a crash).
+`atem_log.txt` (the previous session's log is kept as `atem_log.prev.txt`, handy after a crash). If the app may not
+write to the Desktop (macOS asks), it uses `~/Library/Application Support/HBS ATEM Auto Switcher` instead
+(`~/.atem-switcher` on Windows/Linux).
 
 ### How the gate works
 
@@ -152,15 +161,23 @@ python atem_switcher.pyw
 | Path | |
 |---|---|
 | `atem_switcher.pyw` | the whole app: ATEM UDP client, audio engine, Companion server and PyQt6 interface |
-| `.github/workflows/build-exe.yml` | builds the Windows exe with PyInstaller and publishes it as a release |
+| `.github/workflows/build-release.yml` | builds the Windows exe and the macOS app with PyInstaller and publishes both as a release |
+| `packaging/macos/` | macOS build: `build-mac.sh` (app + dmg), app icon, dmg window layout and background |
 | `docs/icon.png` | icon shown in this README (the app icon itself is embedded in the script) |
 
 ### Releasing
 
 1. Bump `APP_VERSION` in `atem_switcher.pyw`.
-2. Push, then on GitHub open **Actions → Build Windows EXE → Run workflow**.
+2. Push, then on GitHub open **Actions → Build release → Run workflow**.
 
-The workflow builds `HBS-ATEM-Auto-Switcher.exe` with the embedded icon and publishes it as release `v<APP_VERSION>`.
+The workflow builds `HBS-ATEM-Auto-Switcher.exe` and `HBS-ATEM-Auto-Switcher-<version>.dmg`, both with the icon
+embedded in the script, and publishes them as release `v<APP_VERSION>`.
+
+To build the Mac app locally (needs [uv](https://docs.astral.sh/uv/) and the Xcode Command Line Tools):
+
+```bash
+uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy packaging/macos/build-mac.sh
+```
 
 ---
 
