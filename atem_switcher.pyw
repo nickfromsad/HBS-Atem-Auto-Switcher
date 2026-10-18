@@ -389,7 +389,7 @@ class ATEMConnection:
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-APP_VERSION = "1.28"   # bump on every release (matches the GitHub commit count)
+APP_VERSION = "1.29"   # bump on every release (matches the GitHub commit count)
 
 AUDIO_SAMPLERATE    = 48000
 AUDIO_BLOCKSIZE     = 1024
@@ -2225,12 +2225,15 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
     app.setPalette(dark_palette())
-    try:
-        _icon_pm = QPixmap()
-        _icon_pm.loadFromData(base64.b64decode(_ICON_B64))
-        app.setWindowIcon(QIcon(_icon_pm))
-    except Exception:
-        pass
+    # Not on macOS: there the window icon replaces the Dock icon, and Qt would pick the
+    # tiny 16 px image from the .ico. The .app bundle already has the proper Mac icon.
+    if sys.platform != "darwin":
+        try:
+            _icon_pm = QPixmap()
+            _icon_pm.loadFromData(base64.b64decode(_ICON_B64))
+            app.setWindowIcon(QIcon(_icon_pm))
+        except Exception:
+            pass
     app.setStyleSheet(
         APP_STYLESHEET
         .replace('ARROW_UP_PATH', _ARROW_UP_SVG.replace('\\', '/'))
