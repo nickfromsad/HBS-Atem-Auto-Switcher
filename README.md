@@ -1,5 +1,7 @@
 # HBS // ATEM Auto Switcher
 
+**English** · [Nederlands](README.nl.md)
+
 <img src="docs/icon.png" width="128" alt="HBS ATEM Auto Switcher icon" align="right">
 
 Automatic camera switcher for Blackmagic ATEM production switchers. Monitors audio levels from a Dante Virtual
