@@ -46,6 +46,7 @@ de gate de release-tijd voordat hij sluit, zodat er bij een natuurlijke pauze ni
 - **Stream Deck-koppeling**: bedien de automatisering vanuit Bitfocus Companion via HTTP
 - **Log**: elke verbinding, wissel en fout, ook opgeslagen in een bestand
 - **Instellingen worden onthouden**, en de verbinding met de ATEM wordt **automatisch hersteld**
+- **Updatemelding**: in de kopbalk staat het als er een nieuwere versie op GitHub staat
 
 ---
 
@@ -157,7 +158,7 @@ wilt uitlezen.
 Nodig: Python 3.11+.
 
 ```bash
-pip install PyQt6 sounddevice numpy
+pip install PyQt6 sounddevice numpy certifi
 python atem_switcher.pyw
 ```
 
@@ -179,7 +180,7 @@ het script, en zet ze online als release `v<APP_VERSION>`.
 De Mac-app lokaal bouwen (nodig: [uv](https://docs.astral.sh/uv/) en de Xcode Command Line Tools):
 
 ```bash
-uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy packaging/macos/build-mac.sh
+uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy --with certifi packaging/macos/build-mac.sh
 ```
 
 ---

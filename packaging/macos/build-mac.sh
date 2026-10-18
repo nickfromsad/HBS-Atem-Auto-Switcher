@@ -1,10 +1,10 @@
 #!/bin/bash
 # Builds "HBS ATEM Auto Switcher.app" and an HBS-styled .dmg in dist/ (macOS only).
 #
-# Needs Python 3.11+ with:  pip install pyinstaller PyQt6 sounddevice numpy
+# Needs Python 3.11+ with:  pip install pyinstaller PyQt6 sounddevice numpy certifi
 # plus uv (for dmgbuild) and the Xcode Command Line Tools (swift, iconutil).
 # Locally, without installing anything globally:
-#   uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy packaging/macos/build-mac.sh
+#   uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy --with certifi packaging/macos/build-mac.sh
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 ROOT="$PWD"

@@ -22,7 +22,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pyinstaller PyQt6 numpy sounddevice PyATEMMax
+        run: pip install pyinstaller PyQt6 numpy sounddevice certifi PyATEMMax
 
       - name: Extract embedded icon
         shell: bash
@@ -71,7 +71,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
 
       - name: Install dependencies
-        run: pip install pyinstaller PyQt6 numpy sounddevice
+        run: pip install pyinstaller PyQt6 numpy sounddevice certifi
 
       - name: Build app and dmg
         run: packaging/macos/build-mac.sh

@@ -389,7 +389,7 @@ class ATEMConnection:
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-APP_VERSION = "1.29"   # bump on every release (matches the GitHub commit count)
+APP_VERSION = "1.30"   # bump on every release (matches the GitHub commit count)
 
 AUDIO_SAMPLERATE    = 48000
 AUDIO_BLOCKSIZE     = 1024
@@ -418,6 +418,7 @@ class Signals(QObject):
     preview_changed    = pyqtSignal(int, int)  # (me_idx, source) — ATEM preview bus changed
     program_changed    = pyqtSignal(int, int)  # (me_idx, source) — ATEM program bus changed
     log_line           = pyqtSignal(str)    # new log line for the GUI log tab
+    update_available   = pyqtSignal(str, str)  # (version, release page URL) — newer GitHub release
 
 
 # ── ATEM Controller ───────────────────────────────────────────────────────────
@@ -857,6 +858,7 @@ class MainWindow(QMainWindow):
         self.signals.preview_changed.connect(self._on_preview_changed)
         self.signals.program_changed.connect(self._on_program_changed)
         self.signals.log_line.connect(self._on_log_line)
+        self.signals.update_available.connect(self._on_update_available)
         sys.stdout._gui_cb = self.signals.log_line.emit
 
         self._input_devices: list[tuple[int, str]] = []   # (device_idx, label)
@@ -870,6 +872,48 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._refresh_devices()
         self._load_settings()
+        threading.Thread(target=self._check_for_update, daemon=True).start()
+
+    # ── Update check ──────────────────────────────────────────────────────────
+
+    _RELEASES_API = "https://api.github.com/repos/nickfromsad/HBS-Atem-Auto-Switcher/releases/latest"
+
+    def _check_for_update(self):
+        """Background thread: ask GitHub for the latest release, signal the GUI if it is newer."""
+        import ssl
+        import urllib.request
+        try:
+            # certifi's CA list when bundled: a frozen app can't always find the OS certificates
+            try:
+                import certifi
+                ctx = ssl.create_default_context(cafile=certifi.where())
+            except ImportError:
+                ctx = None
+            req = urllib.request.Request(self._RELEASES_API, headers={
+                "Accept": "application/vnd.github+json",
+                "User-Agent": f"HBS-ATEM-Auto-Switcher/{APP_VERSION}",
+            })
+            with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+                info = json.load(resp)
+            latest = info.get("tag_name", "").lstrip("v")
+            url = info.get("html_url", "")
+
+            def as_tuple(v):
+                return tuple(int(x) for x in v.split(".") if x.isdigit())
+            if latest and url and as_tuple(latest) > as_tuple(APP_VERSION):
+                print(f"Update available: v{latest} (running v{APP_VERSION}) — {url}")
+                self.signals.update_available.emit(latest, url)
+        except Exception as e:
+            print(f"Update check skipped: {e}")   # offline on a job is normal
+
+    def _on_update_available(self, version: str, url: str):
+        self.update_btn.setText(f"Update available: v{version}")
+        try:
+            self.update_btn.clicked.disconnect()
+        except TypeError:
+            pass
+        self.update_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(url)))
+        self.update_btn.setVisible(True)
 
     # ── UI ────────────────────────────────────────────────────────────────────
 
@@ -908,6 +952,21 @@ class MainWindow(QMainWindow):
         version_lbl = QLabel(f"v{APP_VERSION}")
         version_lbl.setStyleSheet("color: #555; font-size: 10px; margin-left: 8px;")
         header_row.addWidget(version_lbl)
+
+        # Hidden until _check_for_update finds a newer release on GitHub
+        self.update_btn = QPushButton()
+        self.update_btn.setVisible(False)
+        self.update_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.update_btn.setToolTip("Open the download page of the new version")
+        self.update_btn.setStyleSheet("""
+            QPushButton {
+                background: #00cc55; color: #0a2a14; border: none; border-radius: 9px;
+                font-weight: bold; font-size: 11px; padding: 2px 10px; min-height: 14px;
+            }
+            QPushButton:hover { background: #00b84d; }
+        """)
+        header_row.addSpacing(12)
+        header_row.addWidget(self.update_btn)
 
         header_row.addStretch()
 

@@ -45,6 +45,7 @@ the release time before closing, preventing jumpy cuts during natural pauses.
 - **Stream Deck integration**: control automation from Bitfocus Companion via HTTP
 - **Log**: every connection, switch and error, also saved to a file
 - **Settings persistence** and **auto-reconnect**
+- **Update notice**: the header shows when a newer version is on GitHub
 
 ---
 
@@ -154,7 +155,7 @@ The `/status` endpoint returns `{"automation_active": true/false}` if you need t
 Requires Python 3.11+.
 
 ```bash
-pip install PyQt6 sounddevice numpy
+pip install PyQt6 sounddevice numpy certifi
 python atem_switcher.pyw
 ```
 
@@ -176,7 +177,7 @@ embedded in the script, and publishes them as release `v<APP_VERSION>`.
 To build the Mac app locally (needs [uv](https://docs.astral.sh/uv/) and the Xcode Command Line Tools):
 
 ```bash
-uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy packaging/macos/build-mac.sh
+uv run --python 3.12 --with pyinstaller --with PyQt6 --with sounddevice --with numpy --with certifi packaging/macos/build-mac.sh
 ```
 
 ---
